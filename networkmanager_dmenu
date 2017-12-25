@@ -41,7 +41,8 @@ CONNS = CLIENT.get_connections()
 if sys.version_info.major < 3:
     str = unicode
 
-def dmenu_cmd(num_lines, prompt="Networks", active_lines=None):  # pylint: disable=too-many-branches
+
+def dmenu_cmd(num_lines, prompt="Networks: ", active_lines=None):  # pylint: disable=too-many-branches
     """Parse config.ini if it exists and add options to the dmenu command
 
     Args: args - num_lines: number of lines to display
@@ -96,8 +97,8 @@ def dmenu_cmd(num_lines, prompt="Networks", active_lines=None):  # pylint: disab
             rofi_highlight = False
         if rofi_highlight is True and "rofi" in dmenu_command:
             if active_lines:
-                dmenu_args.extend(["-a", ",".join([str(num)
-                                                   for num in active_lines])])
+                dmenu_args.extend(
+                    ["-a", ",".join([str(num) for num in active_lines])])
     if prompt == "Passphrase":
         if conf.has_section('dmenu_passphrase'):
             args = conf.items('dmenu_passphrase')
@@ -129,10 +130,11 @@ def choose_adapter(client):
     elif devices:
         return devices[0]
     device_names = "\n".join([d.get_iface() for d in devices]).encode(ENC)
-    sel = Popen(dmenu_cmd(len(devices), "CHOOSE ADAPTER:"),
-                stdin=PIPE,
-                stdout=PIPE,
-                env=ENV).communicate(input=device_names)[0].decode(ENC)
+    sel = Popen(
+        dmenu_cmd(len(devices), "CHOOSE ADAPTER: "),
+        stdin=PIPE,
+        stdout=PIPE,
+        env=ENV).communicate(input=device_names)[0].decode(ENC)
     if not sel.strip():
         sys.exit()
     devices = [i for i in devices if i.get_iface() == sel.strip()]
@@ -198,8 +200,8 @@ def ap_security(nm_ap):
     wpa_flags = nm_ap.get_wpa_flags()
     rsn_flags = nm_ap.get_rsn_flags()
     sec_str = ""
-    if ((flags & getattr(NM, '80211ApFlags').PRIVACY) and
-            (wpa_flags == 0) and (rsn_flags == 0)):
+    if ((flags & getattr(NM, '80211ApFlags').PRIVACY) and (wpa_flags == 0) and
+            (rsn_flags == 0)):
         sec_str += " WEP"
     if wpa_flags != 0:
         sec_str += " WPA1"
@@ -217,12 +219,14 @@ def ap_security(nm_ap):
 
 class Action(object):  # pylint: disable=too-few-public-methods
     """Helper class to execute functions from a string variable"""
-    def __init__(self,
-                 name,
-                 func,
-                 args=None,
-                 active=False,
-                ):
+
+    def __init__(
+            self,
+            name,
+            func,
+            args=None,
+            active=False,
+    ):
         self.name = name
         self.func = func
         self.is_active = active
@@ -235,7 +239,7 @@ class Action(object):  # pylint: disable=too-few-public-methods
 
     def __str__(self):
         if sys.version_info.major < 3 and \
-                isinstance(self.name, unicode) is False:
+                not isinstance(self.name, unicode):
             return self.name.decode(ENC)
         return self.name
 
@@ -251,10 +255,11 @@ def process_ap(nm_ap, is_active, adapter):
     if is_active:
         CLIENT.deactivate_connection_async(nm_ap)
     else:
-        conns_cur = [i for i in CONNS if
-                     i.get_setting_wireless() is not None and
-                     i.get_setting_wireless().get_mac_address() ==
-                     adapter.get_permanent_hw_address()]
+        conns_cur = [
+            i for i in CONNS
+            if i.get_setting_wireless() is not None and i.get_setting_wireless(
+            ).get_mac_address() == adapter.get_permanent_hw_address()
+        ]
         con = nm_ap.filter_connections(conns_cur)
         if len(con) > 1:
             raise ValueError("There are multiple connections possible")
@@ -297,12 +302,14 @@ def create_ap_actions(aps, active_ap, active_connection, adapter):  # pylint: di
         action_name = u"{:<{}s}  {:<{}s}  {}".format(name, max_len_name, sec,
                                                      max_len_sec, bars)
         if is_active:
-            ap_actions.append(Action(action_name, process_ap,
-                                     [active_connection, True, adapter],
-                                     active=True))
+            ap_actions.append(
+                Action(
+                    action_name,
+                    process_ap, [active_connection, True, adapter],
+                    active=True))
         else:
-            ap_actions.append(Action(action_name, process_ap,
-                                     [nm_ap, False, adapter]))
+            ap_actions.append(
+                Action(action_name, process_ap, [nm_ap, False, adapter]))
     return ap_actions
 
 
@@ -327,9 +334,11 @@ def create_eth_actions(eths, active):
 def create_gsm_actions(gsms, active):
     """Create the list of strings to display with associated function
     (activate/deactivate) GSM connections."""
-    active_gsms = [i for i in active if
-                   i.get_connection() is not None and
-                   i.get_connection().is_type(NM.SETTING_GSM_SETTING_NAME)]
+    active_gsms = [
+        i for i in active
+        if i.get_connection() is not None and
+        i.get_connection().is_type(NM.SETTING_GSM_SETTING_NAME)
+    ]
     return _create_vpngsm_actions(gsms, active_gsms, "GSM")
 
 
@@ -349,18 +358,21 @@ def _create_vpngsm_actions(cons, active_cons, label):
         is_active = con.get_id() in active_con_ids
         action_name = u"{}:{}".format(con.get_id(), label)
         if is_active:
-            active_connection = [a for a in active_cons
-                                 if a.get_id() == con.get_id()]
+            active_connection = [
+                a for a in active_cons if a.get_id() == con.get_id()
+            ]
             if len(active_connection) != 1:
                 raise ValueError(u"Multiple active connections match"
                                  " the connection: {}".format(con.get_id()))
             active_connection = active_connection[0]
 
-            actions.append(Action(action_name, process_vpngsm,
-                                  [active_connection, False], active=True))
+            actions.append(
+                Action(
+                    action_name,
+                    process_vpngsm, [active_connection, False],
+                    active=True))
         else:
-            actions.append(Action(action_name, process_vpngsm,
-                                  [con, True]))
+            actions.append(Action(action_name, process_vpngsm, [con, True]))
     return actions
 
 
@@ -405,15 +417,17 @@ def get_selection(eths, aps, vpns, gsms, blues, wwan, others):
     if rofi_highlight is True:
         inp = [str(action) for action in all_actions]
     else:
-        inp = [('** ' if action.is_active else '   ') + str(action)
+        inp = [('** ' if action.is_active else '    ') + str(action)
                for action in all_actions]
-    active_lines = [index for index, action in enumerate(all_actions)
-                    if action.is_active]
+    active_lines = [
+        index for index, action in enumerate(all_actions) if action.is_active
+    ]
 
     inp_bytes = "\n".join([i for i in inp]).encode(ENC)
     command = dmenu_cmd(len(inp), active_lines=active_lines)
-    sel = Popen(command, stdin=PIPE, stdout=PIPE,
-                env=ENV).communicate(input=inp_bytes)[0].decode(ENC)
+    sel = Popen(
+        command, stdin=PIPE, stdout=PIPE,
+        env=ENV).communicate(input=inp_bytes)[0].decode(ENC)
 
     if not sel.rstrip():
         sys.exit()
@@ -506,8 +520,9 @@ def get_passphrase():
                 pin = res.split("D ")[1]
         return pin
     else:
-        return Popen(dmenu_cmd(0, "Passphrase"),
-                     stdin=PIPE, stdout=PIPE).communicate()[0].decode(ENC)
+        return Popen(
+            dmenu_cmd(0, "Passphrase: "), stdin=PIPE,
+            stdout=PIPE).communicate()[0].decode(ENC)
 
 
 def delete_connection():
@@ -516,10 +531,11 @@ def delete_connection():
     """
     conn_acts = [Action(i.get_id(), i.delete) for i in CONNS]
     conn_names = "\n".join([str(i) for i in conn_acts]).encode(ENC)
-    sel = Popen(dmenu_cmd(len(conn_acts), "CHOOSE CONNECTION TO DELETE:"),
-                stdin=PIPE,
-                stdout=PIPE,
-                env=ENV).communicate(input=conn_names)[0].decode(ENC)
+    sel = Popen(
+        dmenu_cmd(len(conn_acts), "Choose connection to delete: "),
+        stdin=PIPE,
+        stdout=PIPE,
+        env=ENV).communicate(input=conn_names)[0].decode(ENC)
     if not sel.strip():
         sys.exit()
     action = [i for i in conn_acts if str(i) == sel.rstrip("\n")]
@@ -627,17 +643,22 @@ def create_ap_list(adapter, active_connections):
     aps = []
     ap_names = []
     active_ap = adapter.get_active_access_point()
-    aps_all = sorted(adapter.get_access_points(),
-                     key=lambda a: a.get_strength(), reverse=True)
-    conns_cur = [i for i in CONNS if
-                 i.get_setting_wireless() is not None and
-                 i.get_setting_wireless().get_mac_address() ==
-                 adapter.get_permanent_hw_address()]
+    aps_all = sorted(
+        adapter.get_access_points(),
+        key=lambda a: a.get_strength(),
+        reverse=True)
+    conns_cur = [
+        i for i in CONNS
+        if i.get_setting_wireless() is not None and i.get_setting_wireless()
+        .get_mac_address() == adapter.get_permanent_hw_address()
+    ]
     try:
         ap_conns = active_ap.filter_connections(conns_cur)
         active_ap_name = ssid_to_utf8(active_ap)
-        active_ap_con = [active_conn for active_conn in active_connections
-                         if active_conn.get_connection() in ap_conns]
+        active_ap_con = [
+            active_conn for active_conn in active_connections
+            if active_conn.get_connection() in ap_conns
+        ]
     except AttributeError:
         active_ap_name = None
         active_ap_con = []
