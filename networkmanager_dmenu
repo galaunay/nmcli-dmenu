@@ -512,8 +512,8 @@ def get_passphrase():
         pin = ""
         out = Popen(pinentry,
                     stdout=PIPE,
-                    stdin=PIPE).communicate( \
-                            input=b'setdesc Get network password\ngetpin\n')[0]
+                    stdin=PIPE).communicate(
+                        input=b'setdesc Get network password\ngetpin\n')[0]
         if out:
             res = out.decode(ENC).split("\n")[2]
             if res.startswith("D "):
