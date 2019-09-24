@@ -162,6 +162,7 @@ def create_other_actions(client):
     wifi_action = "Disable" if wifi_enabled else "Enable"
     actions = [Action("{} Wifi".format(wifi_action), toggle_wifi,
                       not wifi_enabled),
+               Action("Restart Wifi", restart_wifi),
                Action("{} Networking".format(networking_action),
                       toggle_networking, not networking_enabled),
                Action("Launch Connection Manager", launch_connection_editor),
@@ -471,6 +472,14 @@ def toggle_wwan(enable):
 
     """
     CLIENT.wwan_set_enabled(enable)
+
+
+def restart_wifi():
+    """Restart the wifi (disable and re-enable)
+
+    """
+    toggle_wifi(False)
+    toggle_wifi(True)
 
 
 def launch_connection_editor():
